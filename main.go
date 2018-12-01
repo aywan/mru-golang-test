@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -33,17 +34,22 @@ func main() {
 		go execWorker(workerCh, wg)
 	}
 
-	checkList := make([]string, 60)
-	for i := 0; i < 60; i++ {
-		checkList[i] = fmt.Sprintf("%d", i+1)
+	scanner := bufio.NewScanner(os.Stdin)
+	// First read without rate limiting.
+	if scanner.Scan() {
+		workerCh <- scanner.Text()
 	}
-
 	limiter := time.Tick(time.Duration(1000000000 / *rate) * time.Nanosecond)
-	for _, arg := range checkList {
-		workerCh <- arg
+	for scanner.Scan() {
 		<-limiter
+		workerCh <- scanner.Text()
 	}
 	close(workerCh)
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
 	wg.Wait()
 }
 
