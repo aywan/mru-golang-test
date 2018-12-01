@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -37,8 +38,10 @@ func main() {
 		checkList[i] = fmt.Sprintf("%d", i+1)
 	}
 
+	limiter := time.Tick(time.Duration(1000000000 / *rate) * time.Nanosecond)
 	for _, arg := range checkList {
 		workerCh <- arg
+		<-limiter
 	}
 	close(workerCh)
 	wg.Wait()
